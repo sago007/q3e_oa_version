@@ -1,0 +1,50 @@
+From 621b7e27d262aa01cfb68eee96bded9e7fc6f481 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Thu, 15 Oct 2026 17:27:44 +0200
+Subject: [PATCH] OpenArena: binary names
+
+Client openarena.x86_64(.exe), server oa_ded.x86_64(.exe), renderers
+openarena_opengl_x86_64 / openarena_vulkan_x86_64, following the
+OpenArena naming convention.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ Makefile | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 2c32ddde..c8e078bd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -52,8 +52,8 @@ USE_RENDERER_DLOPEN = 1
+ # valid options: opengl, vulkan, opengl2
+ RENDERER_DEFAULT = opengl
+ 
+-CNAME            = quake3e
+-DNAME            = quake3e.ded
++CNAME            = openarena
++DNAME            = oa_ded
+ 
+ RENDERER_PREFIX  = $(CNAME)
+ 
+@@ -426,7 +426,7 @@ ifdef MINGW
+   BASE_CFLAGS += -ffunction-sections -flto
+ 
+   ifeq ($(ARCH),x86_64)
+-    ARCHEXT = .x64
++    ARCHEXT = .x86_64
+     BASE_CFLAGS += -m64
+     OPTIMIZE = -O2 -ffast-math
+   endif
+@@ -557,7 +557,7 @@ else
+   OPTIMIZE = -O2 -fvisibility=hidden
+ 
+   ifeq ($(ARCH),x86_64)
+-    ARCHEXT = .x64
++    ARCHEXT = .x86_64
+   else
+   ifeq ($(ARCH),x86)
+     OPTIMIZE += -march=i586 -mtune=i686
+-- 
+2.53.0
+

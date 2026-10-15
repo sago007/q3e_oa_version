@@ -1,0 +1,231 @@
+From a9cf4dbb351adbdde89ff7e059ccb667afd4c164 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Thu, 15 Oct 2026 17:26:28 +0200
+Subject: [PATCH] OpenArena: branding, basegame, protocol and master servers
+
+- Define STANDALONE: no authorize server, CD-key handling or id pak
+  checksum enforcement (FS_CheckIdPaks would otherwise reject baseoa).
+  Complete the STANDALONE guards Quake3e lacked (Com_WriteCDKey,
+  UI_usesUniqueCDKey call in Com_WriteConfiguration, pak_checksums).
+- BASEGAME "baseoa", window/console titles "OpenArena",
+  Q3_VERSION "Q3e-OA 1.32e", HOMEPATH_NAME_* for the home directory
+  patches, no Steam path lookup.
+- Default protocol "71-compat": OpenArena's protocol 71 is the legacy
+  68-style netchan with ioquake3's challenge format, which is exactly
+  what Quake3e's -compat mode implements.
+- Master server dpmaster.deathmask.net only (sv_master2/3 empty).
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ code/qcommon/common.c      | 14 ++++++++------
+ code/qcommon/files.c       | 10 ++++++++++
+ code/qcommon/q_shared.h    | 22 ++++++++++++++++------
+ code/qcommon/qcommon.h     |  2 +-
+ code/unix/unix_main.c      |  4 ++--
+ code/win32/win_resource.rc |  2 +-
+ 6 files changed, 38 insertions(+), 16 deletions(-)
+
+diff --git a/code/qcommon/common.c b/code/qcommon/common.c
+index fabdf1ef..f96d4295 100644
+--- a/code/qcommon/common.c
++++ b/code/qcommon/common.c
+@@ -3357,7 +3357,7 @@ void Com_AppendCDKey( const char *filename ) {
+ }
+ 
+ 
+-#ifndef DEDICATED // bk001204
++#if !defined(DEDICATED) && !defined(STANDALONE) // bk001204
+ /*
+ =================
+ Com_WriteCDKey
+@@ -3991,10 +3991,12 @@ void Com_Init( char *commandLine ) {
+ 	Com_StartupVariable( "sv_master2" );
+ 	Com_StartupVariable( "sv_master3" );
+ 	Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
+-	Cvar_Get( "sv_master2", "directory.ioquake3.org", CVAR_INIT );
+-	Cvar_Get( "sv_master3", "master.maverickservers.com", CVAR_INIT );
++	Cvar_Get( "sv_master2", "", CVAR_INIT );
++	Cvar_Get( "sv_master3", "", CVAR_INIT );
+ 
+-	com_protocol = Cvar_Get( "protocol", XSTRING( DEFAULT_PROTOCOL_VERSION ), 0 );
++	// OpenArena uses protocol number 71 with the legacy (68-style) netchan
++	// and the new challenge format, which is exactly what "-compat" selects
++	com_protocol = Cvar_Get( "protocol", XSTRING( NEW_PROTOCOL_VERSION ) "-compat", 0 );
+ 	Cvar_SetDescription( com_protocol, "Specify network protocol version number, use -compat suffix for OpenArena compatibility.");
+ 	if ( Q_stristr( com_protocol->string, "-compat" ) > com_protocol->string ) {
+ 		// strip -compat suffix
+@@ -4264,7 +4266,7 @@ Writes key bindings and archived cvars to config file if modified
+ ===============
+ */
+ void Com_WriteConfiguration( void ) {
+-#ifndef DEDICATED
++#if !defined(DEDICATED) && !defined(STANDALONE)
+ 	const char *basegame;
+ 	const char *gamedir;
+ #endif
+@@ -4281,7 +4283,7 @@ void Com_WriteConfiguration( void ) {
+ 
+ 	Com_WriteConfigToFile( Q3CONFIG_CFG );
+ 
+-#ifndef DEDICATED
++#if !defined(DEDICATED) && !defined(STANDALONE)
+ 	gamedir = FS_GetCurrentGameDir();
+ 	basegame = FS_GetBaseGameDir();
+ 	if ( UI_usesUniqueCDKey() && gamedir[0] && Q_stricmp( basegame, gamedir ) ) {
+diff --git a/code/qcommon/files.c b/code/qcommon/files.c
+index 187e0904..bd31e888 100644
+--- a/code/qcommon/files.c
++++ b/code/qcommon/files.c
+@@ -196,6 +196,7 @@ or configs will never get loaded from disk!
+ 
+ */
+ 
++#ifndef STANDALONE
+ // every time a new demo pk3 file is built, this checksum must be updated.
+ // the easiest way to get it is to just run the game and see what it spits out
+ #define	DEMO_PAK0_CHECKSUM	2985612116u
+@@ -210,6 +211,7 @@ static const unsigned pak_checksums[] = {
+ 	908855077u,
+ 	977125798u
+ };
++#endif
+ 
+ // if this is defined, the executable positively won't work with any paks other
+ // than the demo pak, even if productid is present.  This is only used for our
+@@ -384,7 +386,9 @@ void Com_AppendCDKey( const char *filename );
+ void Com_ReadCDKey( const char *filename );
+ 
+ static int FS_GetModList( char *listbuf, int bufsize );
++#ifndef STANDALONE
+ static void FS_CheckIdPaks( void );
++#endif
+ void FS_Reload( void );
+ 
+ 
+@@ -4902,10 +4906,12 @@ static void FS_Startup( void ) {
+ 
+ 	fs_gamedirvar->modified = qfalse; // We just loaded, it's not modified
+ 
++#ifndef STANDALONE
+ 	// check original q3a files
+ 	if ( FS_IsBaseGame( BASEGAME ) || FS_IsBaseGame( BASEDEMO ) ) {
+ 		FS_CheckIdPaks();
+ 	}
++#endif
+ 
+ #ifdef FS_MISSING
+ 	if (missingFiles == NULL) {
+@@ -4922,6 +4928,7 @@ static void FS_Startup( void ) {
+ }
+ 
+ 
++#ifndef STANDALONE
+ static void FS_PrintSearchPaths( void )
+ {
+ 	const searchpath_t *path = fs_searchpaths;
+@@ -4936,8 +4943,10 @@ static void FS_PrintSearchPaths( void )
+ 		path = path->next;
+ 	}
+ }
++#endif
+ 
+ 
++#ifndef STANDALONE
+ /*
+ ===================
+ FS_CheckIdPaks
+@@ -5041,6 +5050,7 @@ static void FS_CheckIdPaks( void )
+ 			Com_Error(ERR_FATAL, "\n*** you need to install Quake III Arena in order to play ***");
+ 	}
+ }
++#endif // !STANDALONE
+ 
+ 
+ /*
+diff --git a/code/qcommon/q_shared.h b/code/qcommon/q_shared.h
+index abfda3bc..33055b64 100644
+--- a/code/qcommon/q_shared.h
++++ b/code/qcommon/q_shared.h
+@@ -26,21 +26,31 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ // q_shared.h -- included first by ALL program modules.
+ // A user mod should never modify this file
+ 
+-#define Q3_VERSION            "Q3 1.32e"
++// OpenArena build of Quake3e: standalone game, no id Software authorize/CD-key logic
++#ifndef STANDALONE
++#define STANDALONE 1
++#endif
++
++#define Q3_VERSION            "Q3e-OA 1.32e"
+ #ifndef SVN_VERSION
+   #define SVN_VERSION Q3_VERSION
+ #endif
+-#define CLIENT_WINDOW_TITLE   "Quake 3: Arena"
+-#define CONSOLE_WINDOW_TITLE  "Quake 3 Console"
++#define CLIENT_WINDOW_TITLE   "OpenArena"
++#define CONSOLE_WINDOW_TITLE  "OpenArena Console"
+ // 1.32 released 7-10-2002
+ 
+ //#define DEFAULT_GAME			"edawn"
+ 
+-#define BASEGAME				"baseq3"
++#define BASEGAME				"baseoa"
+ #define BASEDEMO				"demoq3"
+ #define BASETA					"missionpack"
+-#define STEAMPATH_NAME			"Quake 3 Arena"
+-#define STEAMPATH_APPID			"2200"
++// OpenArena is not sold on Steam, no STEAMPATH_NAME / STEAMPATH_APPID
++
++// user-specific data directories
++#define HOMEPATH_NAME_UNIX		".openarena"
++#define HOMEPATH_NAME_WIN		"OpenArena"
++#define HOMEPATH_NAME_MACOSX	HOMEPATH_NAME_WIN
++#define HOMEPATH_NAME_XDG		HOMEPATH_NAME_WIN
+ 
+ #define MAX_TEAMNAME            32
+ #define MAX_MASTER_SERVERS      5	// number of supported master servers
+diff --git a/code/qcommon/qcommon.h b/code/qcommon/qcommon.h
+index 25b5344d..0ea3454e 100644
+--- a/code/qcommon/qcommon.h
++++ b/code/qcommon/qcommon.h
+@@ -305,7 +305,7 @@ extern const int demo_protocols[];
+ #define	UPDATE_SERVER_NAME	"update.quake3arena.com"
+ // override on command line, config files etc.
+ #ifndef MASTER_SERVER_NAME
+-#define MASTER_SERVER_NAME	"master.quake3arena.com"
++#define MASTER_SERVER_NAME	"dpmaster.deathmask.net"
+ #endif
+ #ifndef AUTHORIZE_SERVER_NAME
+ #define	AUTHORIZE_SERVER_NAME	"authorize.quake3arena.com"
+diff --git a/code/unix/unix_main.c b/code/unix/unix_main.c
+index 1f30a137..b1548ae2 100644
+--- a/code/unix/unix_main.c
++++ b/code/unix/unix_main.c
+@@ -810,9 +810,9 @@ void Sys_PrintBinVersion( const char* name )
+ 
+ 	fprintf( stdout, "\n\n%s\n", sep );
+ #ifdef DEDICATED
+-	fprintf( stdout, "Linux Quake3 Dedicated Server [%s %s]\n", date, time );
++	fprintf( stdout, "Linux OpenArena Dedicated Server [%s %s]\n", date, time );
+ #else
+-	fprintf( stdout, "Linux Quake3 Full Executable  [%s %s]\n", date, time );
++	fprintf( stdout, "Linux OpenArena Full Executable  [%s %s]\n", date, time );
+ #endif
+ 	fprintf( stdout, " local install: %s\n", name );
+ 	fprintf( stdout, "%s\n\n", sep );
+diff --git a/code/win32/win_resource.rc b/code/win32/win_resource.rc
+index 1850ce9e..a267283d 100644
+--- a/code/win32/win_resource.rc
++++ b/code/win32/win_resource.rc
+@@ -67,7 +67,7 @@ IDI_ICON1               ICON    DISCARDABLE     "code/win32/qe3.ico"
+ 
+ STRINGTABLE DISCARDABLE 
+ BEGIN
+-    IDS_STRING1             "Quake3"
++    IDS_STRING1             "OpenArena"
+ END
+ 
+ #endif    // English (U.S.) resources
+-- 
+2.53.0
+

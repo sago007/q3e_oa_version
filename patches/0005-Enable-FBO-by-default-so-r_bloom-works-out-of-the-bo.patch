@@ -1,0 +1,44 @@
+From 88f64b2d325d89ce8923616d0f0d5fd9d3e412c6 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Thu, 15 Oct 2026 17:27:44 +0200
+Subject: [PATCH] Enable FBO by default so r_bloom works out of the box
+
+Quake3e's bloom (OpenGL and Vulkan renderers) requires r_fbo 1. Turn
+it on by default so an OpenArena configuration with r_bloom 1 gets
+bloom without further setup.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ code/renderer/tr_init.c   | 2 +-
+ code/renderervk/tr_init.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/code/renderer/tr_init.c b/code/renderer/tr_init.c
+index 76f1160f..8aac4ab1 100644
+--- a/code/renderer/tr_init.c
++++ b/code/renderer/tr_init.c
+@@ -1793,7 +1793,7 @@ static void R_Register( void )
+ 	ri.Cvar_SetDescription( r_flares, "Enables corona effects on light sources." );
+ 
+ #ifdef USE_FBO
+-	r_fbo = ri.Cvar_Get( "r_fbo", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
++	r_fbo = ri.Cvar_Get( "r_fbo", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
+ 	ri.Cvar_SetDescription( r_fbo, "Use framebuffer objects, enables gamma correction in windowed mode and allows arbitrary video size and screenshot/video capture.\n Required for bloom, HDR rendering, anti-aliasing and greyscale effects.\n OpenGL 3.0+ required." );
+ 
+ 	r_ext_supersample = ri.Cvar_Get( "r_ext_supersample", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+diff --git a/code/renderervk/tr_init.c b/code/renderervk/tr_init.c
+index d7662884..00024b1e 100644
+--- a/code/renderervk/tr_init.c
++++ b/code/renderervk/tr_init.c
+@@ -1788,7 +1788,7 @@ static void R_Register( void )
+ 		" -2 - first integrated GPU" );
+ 	r_device->modified = qfalse;
+ 
+-	r_fbo = ri.Cvar_Get( "r_fbo", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
++	r_fbo = ri.Cvar_Get( "r_fbo", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
+ 	ri.Cvar_SetDescription( r_fbo, "Use framebuffer objects, enables gamma correction in windowed mode and allows arbitrary video size and screenshot/video capture.\n Required for bloom, HDR rendering, anti-aliasing and greyscale effects." );
+ 	r_hdr = ri.Cvar_Get( "r_hdr", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+ 	ri.Cvar_SetDescription(r_hdr, "Enables high dynamic range frame buffer texture format. Requires \\r_fbo 1.\n -1: 4-bit, for testing purposes, heavy color banding, might not work on all systems\n  0: 8 bit, default, moderate color banding with multi-stage shaders\n  1: 16 bit, enhanced blending precision, no color banding, might decrease performance on AMD / Intel GPUs\n" );
+-- 
+2.53.0
+

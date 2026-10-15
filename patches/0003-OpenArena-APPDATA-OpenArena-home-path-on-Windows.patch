@@ -1,0 +1,48 @@
+From f831ac66a9e78947f7bd7f0a43b1b2c80c569182 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Thu, 15 Oct 2026 17:27:44 +0200
+Subject: [PATCH] OpenArena: %APPDATA%\OpenArena home path on Windows
+
+Enable the dormant USE_PROFILES code path unconditionally and name the
+directory after HOMEPATH_NAME_WIN, matching the OpenArena engine so
+existing Windows installs keep their configuration.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ code/win32/win_shared.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/code/win32/win_shared.c b/code/win32/win_shared.c
+index 5729a37d..a0738e2d 100644
+--- a/code/win32/win_shared.c
++++ b/code/win32/win_shared.c
+@@ -101,7 +101,6 @@ Sys_DefaultHomePath
+ */
+ const char *Sys_DefaultHomePath( void ) 
+ {
+-#ifdef USE_PROFILES
+ 	TCHAR szPath[MAX_PATH];
+ 	static char path[MAX_OSPATH];
+ 	FARPROC qSHGetFolderPath;
+@@ -128,7 +127,7 @@ const char *Sys_DefaultHomePath( void )
+ 		return NULL;
+ 	}
+ 	Q_strncpyz( path, szPath, sizeof(path) );
+-	Q_strcat( path, sizeof(path), "\\Quake3" );
++	Q_strcat( path, sizeof(path), "\\" HOMEPATH_NAME_WIN );
+ 	FreeLibrary(shfolder);
+ 	if( !CreateDirectory( path, NULL ) )
+ 	{
+@@ -139,9 +138,6 @@ const char *Sys_DefaultHomePath( void )
+ 		}
+ 	}
+ 	return path;
+-#else
+-    return NULL;
+-#endif
+ }
+ 
+ 
+-- 
+2.53.0
+

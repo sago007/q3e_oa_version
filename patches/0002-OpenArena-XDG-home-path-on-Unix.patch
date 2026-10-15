@@ -1,0 +1,245 @@
+From 769e473b0c65c7a743b3de73648765ac6243f505 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Thu, 15 Oct 2026 17:27:44 +0200
+Subject: [PATCH] OpenArena: XDG home path on Unix
+
+Port the OpenArena engine's XDG_DATA_HOME support: the home directory
+is $XDG_DATA_HOME/OpenArena (or $HOME/.local/share/OpenArena). An
+existing classic $HOME/.openarena directory is renamed into place, or
+symlinked if the rename fails, and a $HOME/.openarena symlink is left
+behind so older engines keep working. Dangling symlinks at either
+location are removed first.
+
+Differences from the OpenArena implementation: no com_homepath cvar
+(Quake3e does not have one), Sys_IsSymbolic really checks S_ISLNK,
+and errors are reported with strerror.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ code/unix/unix_shared.c | 194 +++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 181 insertions(+), 13 deletions(-)
+
+diff --git a/code/unix/unix_shared.c b/code/unix/unix_shared.c
+index 70903526..de000bc0 100644
+--- a/code/unix/unix_shared.c
++++ b/code/unix/unix_shared.c
+@@ -379,6 +379,176 @@ const char *Sys_Pwd( void )
+ }
+ 
+ 
++// Used to determine where to store user-specific files
++static char homePath[ MAX_OSPATH ] = { 0 };
++
++#ifndef MACOS_X
++/* XDG home path, normally $XDG_DATA_HOME/OpenArena or $HOME/.local/share/OpenArena */
++static char homeXdg[ MAX_OSPATH ] = { 0 };
++/* Classic home path, normally $HOME/.openarena */
++static char homeClassic[ MAX_OSPATH ] = { 0 };
++
++
++/*
++=================
++Sys_SetXdgDataHomePath
++
++Fills dest with the XDG data home for the game, creating the parent
++directories ($XDG_DATA_HOME or $HOME/.local/share) when missing.
++dest is the empty string if neither $XDG_DATA_HOME nor $HOME is set.
++=================
++*/
++static void Sys_SetXdgDataHomePath( char *dest, size_t n )
++{
++	const char *xdgDataPath = getenv( "XDG_DATA_HOME" );
++	const char *homeFolder;
++
++	dest[0] = '\0';
++
++	if ( xdgDataPath && xdgDataPath[0] )
++	{
++		Com_sprintf( dest, n, "%s/", xdgDataPath );
++		FS_CreatePath( dest );
++		Q_strcat( dest, n, HOMEPATH_NAME_XDG );
++		return;
++	}
++
++	homeFolder = getenv( "HOME" );
++	if ( homeFolder )
++	{
++		Com_sprintf( dest, n, "%s/.local/share/", homeFolder );
++		FS_CreatePath( dest );
++		Q_strcat( dest, n, HOMEPATH_NAME_XDG );
++	}
++}
++
++
++/*
++=================
++Sys_SetHomePaths
++
++Sets the global variables homeXdg and homeClassic.
++=================
++*/
++static void Sys_SetHomePaths( void )
++{
++	Sys_SetXdgDataHomePath( homeXdg, sizeof( homeXdg ) );
++	Com_sprintf( homeClassic, sizeof( homeClassic ), "%s%c%s", getenv( "HOME" ), PATH_SEP, HOMEPATH_NAME_UNIX );
++}
++
++
++/*
++=================
++Sys_IsSymbolic
++
++Returns true if the path exists and is a symbolic link.
++=================
++*/
++static qboolean Sys_IsSymbolic( const char *path )
++{
++	struct stat buf;
++
++	if ( lstat( path, &buf ) != 0 )
++		return qfalse;
++
++	return S_ISLNK( buf.st_mode ) ? qtrue : qfalse;
++}
++
++
++/*
++=================
++Sys_IsDir
++
++Returns true if the path exists and is a directory (following symlinks).
++=================
++*/
++static qboolean Sys_IsDir( const char *path )
++{
++	struct stat buf;
++
++	if ( stat( path, &buf ) != 0 )
++		return qfalse;
++
++	return S_ISDIR( buf.st_mode ) ? qtrue : qfalse;
++}
++
++
++/*
++=================
++Sys_RemoveInvalidSymlinkToDir
++
++Deletes a symbolic link that does not resolve to a directory.
++=================
++*/
++static void Sys_RemoveInvalidSymlinkToDir( const char *path )
++{
++	if ( Sys_IsSymbolic( path ) && !Sys_IsDir( path ) )
++	{
++		unlink( path );
++	}
++}
++
++
++/*
++=================
++Sys_CreateXDGHomePath
++
++Creates the XDG home directory, migrating a classic $HOME/.openarena
++directory to it (rename, or symlink if rename fails) and leaving a
++$HOME/.openarena symlink behind for older engines.
++=================
++*/
++static void Sys_CreateXDGHomePath( void )
++{
++	Sys_SetHomePaths();
++
++	if ( !homeXdg[0] )
++		return;
++
++	Sys_RemoveInvalidSymlinkToDir( homeXdg );
++	Sys_RemoveInvalidSymlinkToDir( homeClassic );
++
++	if ( Sys_IsDir( homeXdg ) && Sys_IsDir( homeClassic ) )
++	{
++		// both exist (one may be a symlink to the other), nothing to do
++		return;
++	}
++
++	if ( Sys_IsDir( homeClassic ) && !Sys_IsDir( homeXdg ) )
++	{
++		// move the classic home directory to the XDG location
++		if ( rename( homeClassic, homeXdg ) != 0 )
++		{
++			Com_Printf( "Failed to move \"%s\" to \"%s\": %s. Non fatal.\n", homeClassic, homeXdg, strerror( errno ) );
++		}
++	}
++
++	if ( !Sys_IsDir( homeXdg ) && Sys_IsDir( homeClassic ) )
++	{
++		// rename failed, link instead
++		if ( symlink( homeClassic, homeXdg ) != 0 )
++		{
++			Com_Printf( "Failed to create symbolic link \"%s\": %s.\n", homeXdg, strerror( errno ) );
++		}
++	}
++
++	if ( !Sys_Mkdir( homeXdg ) )
++	{
++		Com_Printf( "Failed to create \"%s\": %s.\n", homeXdg, strerror( errno ) );
++	}
++
++	if ( Sys_IsDir( homeXdg ) && !Sys_IsDir( homeClassic ) )
++	{
++		// keep the classic location working for older engines
++		if ( symlink( homeXdg, homeClassic ) != 0 )
++		{
++			Com_Printf( "Failed to create symbolic link \"%s\": %s.\n", homeClassic, strerror( errno ) );
++		}
++	}
++}
++#endif // !MACOS_X
++
++
+ /*
+ =================
+ Sys_DefaultHomePath
+@@ -386,28 +556,26 @@ Sys_DefaultHomePath
+ */
+ const char *Sys_DefaultHomePath( void )
+ {
+-	// Used to determine where to store user-specific files
+-	static char homePath[ MAX_OSPATH ];
+-
+ 	const char *p;
+ 
+ 	if ( *homePath )
+ 		return homePath;
+-            
+-	if ( (p = getenv("HOME")) != NULL ) 
++
++	if ( (p = getenv("HOME")) != NULL )
+ 	{
+-		Q_strncpyz( homePath, p, sizeof( homePath ) );
+ #ifdef MACOS_X
+-		Q_strcat( homePath, sizeof(homePath), "/Library/Application Support/Quake3" );
+-#else
+-		Q_strcat( homePath, sizeof( homePath ), "/.q3a" );
+-#endif
+-		if ( mkdir( homePath, 0750 ) ) 
++		Q_strncpyz( homePath, p, sizeof( homePath ) );
++		Q_strcat( homePath, sizeof(homePath), "/Library/Application Support/" HOMEPATH_NAME_MACOSX );
++		if ( mkdir( homePath, 0750 ) )
+ 		{
+-			if ( errno != EEXIST ) 
+-				Sys_Error( "Unable to create directory \"%s\", error is %s(%d)\n", 
++			if ( errno != EEXIST )
++				Sys_Error( "Unable to create directory \"%s\", error is %s(%d)\n",
+ 					homePath, strerror( errno ), errno );
+ 		}
++#else
++		Sys_CreateXDGHomePath();
++		Q_strncpyz( homePath, homeXdg, sizeof( homePath ) );
++#endif
+ 		return homePath;
+ 	}
+ 	return ""; // assume current dir
+-- 
+2.53.0
+
