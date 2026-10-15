@@ -9,5 +9,5 @@ QUAKE3E_COMMIT="${QUAKE3E_COMMIT:-$(sed -n 's/^QUAKE3E_COMMIT="\${QUAKE3E_COMMIT
 [ -d "$SRC/.git" ] || { echo "no clone at $SRC, run ./build.sh first" >&2; exit 1; }
 [ -n "$QUAKE3E_COMMIT" ] || { echo "could not determine QUAKE3E_COMMIT" >&2; exit 1; }
 rm -f "$HERE"/patches/*.patch
-git -C "$SRC" format-patch --binary -N -o "$HERE/patches" "$QUAKE3E_COMMIT..HEAD"
+git -C "$SRC" format-patch --binary --zero-commit -N -o "$HERE/patches" "$QUAKE3E_COMMIT..HEAD"
 ls -1 "$HERE/patches"

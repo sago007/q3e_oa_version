@@ -46,6 +46,7 @@ libraries must sit next to the executable.
 | 0004 | OpenArena window icon and Windows executable icon, plus `misc/openarena.png` and `misc/openarena.svg` |
 | 0005 | `r_fbo` defaults to 1 so `r_bloom 1` works |
 | 0006 | Binary names `openarena.x86_64`, `oa_ded.x86_64`, `openarena_<renderer>_x86_64` |
+| 0007 | OpenArena text colours: `^0`-`^8` with `^8` orange, other `^x` sequences print literally (Quake3e's extended `^9`/`^a`-`^z` colours are disabled) |
 
 ### Protocol
 
@@ -66,8 +67,7 @@ semantics (Quake3e default 0.5). See Quake3e's `r_bloom_threshold`,
 ### Not ported from the OpenArena engine
 
 OpenArena's renderer extras (GLSL post-processing, lens reflections, `r_specMode`,
-`r_envMode`, the 9-colour `^8` orange console colour) and its console cosmetics are
-not part of this build. Quake3e's own equivalents apply.
+`r_envMode`) and its console cosmetics are not part of this build. Quake3e's own equivalents apply.
 
 ## Maintaining the patches
 

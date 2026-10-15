@@ -1,4 +1,4 @@
-From 9e9433653152c0a0e9d7d3dd27d9a4d23aa85aac Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Poul Sander <poul@poulsander.com>
 Date: Thu, 15 Oct 2026 17:27:44 +0200
 Subject: [PATCH] OpenArena: icons
@@ -878,7 +878,7 @@ HcmV?d00001
 
 diff --git a/misc/openarena.svg b/misc/openarena.svg
 new file mode 100644
-index 00000000..425d2b7f
+index 00000000..3af5594b
 --- /dev/null
 +++ b/misc/openarena.svg
 @@ -0,0 +1,15 @@

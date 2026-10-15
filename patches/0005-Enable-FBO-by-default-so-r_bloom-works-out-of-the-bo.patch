@@ -1,4 +1,4 @@
-From 88f64b2d325d89ce8923616d0f0d5fd9d3e412c6 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Poul Sander <poul@poulsander.com>
 Date: Thu, 15 Oct 2026 17:27:44 +0200
 Subject: [PATCH] Enable FBO by default so r_bloom works out of the box

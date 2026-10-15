@@ -1,4 +1,4 @@
-From f831ac66a9e78947f7bd7f0a43b1b2c80c569182 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Poul Sander <poul@poulsander.com>
 Date: Thu, 15 Oct 2026 17:27:44 +0200
 Subject: [PATCH] OpenArena: %APPDATA%\OpenArena home path on Windows

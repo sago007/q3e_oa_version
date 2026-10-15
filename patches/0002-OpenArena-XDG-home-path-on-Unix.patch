@@ -1,4 +1,4 @@
-From 769e473b0c65c7a743b3de73648765ac6243f505 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Poul Sander <poul@poulsander.com>
 Date: Thu, 15 Oct 2026 17:27:44 +0200
 Subject: [PATCH] OpenArena: XDG home path on Unix
