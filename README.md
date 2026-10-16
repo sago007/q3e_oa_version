@@ -27,6 +27,17 @@ Environment overrides: `QUAKE3E_REPO`, `QUAKE3E_COMMIT` (the pinned upstream com
 the patches apply to), `QUAKE3E_REFERENCE` (a local Quake3e clone used to speed up
 cloning).
 
+### Docker
+
+To build without installing the toolchain, `Dockerfile` runs `build.sh` in an
+Ubuntu 22.04 container and exports the binaries:
+
+    DOCKER_BUILDKIT=1 docker build -o dist-docker .          # both platforms
+    DOCKER_BUILDKIT=1 docker build -o dist-docker --build-arg BUILD_ARGS=--linux-only .
+
+Build args: `QUAKE3E_COMMIT`, `JOBS`, `BUILD_ARGS` (extra `build.sh` options).
+`--target build` keeps the toolchain image with the full build tree in `/src`.
+
 Output:
 
     dist/linux-x86_64/   openarena.x86_64  oa_ded.x86_64  openarena_opengl_x86_64.so  openarena_vulkan_x86_64.so

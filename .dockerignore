@@ -1,0 +1,4 @@
+# Only build.sh and patches/ are needed inside the image.
+*
+!build.sh
+!patches/
