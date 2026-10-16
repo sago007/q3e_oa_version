@@ -58,6 +58,7 @@ libraries must sit next to the executable.
 | 0005 | `r_fbo` defaults to 1 so `r_bloom 1` works |
 | 0006 | Binary names `openarena.x86_64`, `oa_ded.x86_64`, `openarena_<renderer>_x86_64` |
 | 0007 | OpenArena text colours: `^0`-`^8` with `^8` orange, other `^x` sequences print literally (Quake3e's extended `^9`/`^a`-`^z` colours are disabled) |
+| 0008 | OpenArena cgame syscalls 112 (`trap_R_LFX_ParticleEffect`, accepted but does nothing) and 113 (`trap_R_GetViewPosition`, always reports off screen); Quake3e's own cgame extensions move to 120+ (mods find them via `trap_GetValue`) |
 
 ### Protocol
 
@@ -78,7 +79,10 @@ semantics (Quake3e default 0.5). See Quake3e's `r_bloom_threshold`,
 ### Not ported from the OpenArena engine
 
 OpenArena's renderer extras (GLSL post-processing, lens reflections, `r_specMode`,
-`r_envMode`) and its console cosmetics are not part of this build. Quake3e's own equivalents apply.
+`r_envMode`), its renderer particle system (`cg_leiEnhancement` effects are accepted
+but not drawn) and its console cosmetics are not part of this build. Quake3e's own
+equivalents apply. The extra `refEntity_t` fields of newer OpenArena gamecode (eye
+tracking, glow) are ignored.
 
 ## Maintaining the patches
 

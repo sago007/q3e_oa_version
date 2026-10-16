@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Poul Sander <poul@poulsander.com>
+Date: Fri, 16 Oct 2026 21:51:16 +0200
+Subject: [PATCH] OpenArena: cgame syscalls 112/113 (LFX particles, view
+ position)
+
+The OpenArena engine uses cgame syscall 112 for trap_R_LFX_ParticleEffect
+and 113 for trap_R_GetViewPosition. Quake3e used 112 for
+CG_R_ADDREFENTITYTOSCENE2, so an OpenArena cgame calling the particle
+trap dropped with "RE_AddRefEntityToScene: bad reType". Reserve the
+OpenArena numbers (particles are a no-op, view position reports off
+screen) and move the Quake3e extensions to 120+. Quake3e mods find them
+through trap_GetValue, so the renumbering does not affect them.
+---
+ code/cgame/cg_public.h |  9 +++++++--
+ code/client/cl_cgame.c | 12 ++++++++++++
+ 2 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/code/cgame/cg_public.h b/code/cgame/cg_public.h
+index c92bf000..098072f1 100644
+--- a/code/cgame/cg_public.h
++++ b/code/cgame/cg_public.h
+@@ -177,8 +177,13 @@ typedef enum {
+ 	CG_TESTPRINTFLOAT,
+ 	CG_ACOS,
+ 
+-	// engine extensions
+-	CG_R_ADDREFENTITYTOSCENE2,
++	// OpenArena engine extensions, same numbers as engine-openarena so that
++	// OpenArena cgame builds keep working (accepted, but not implemented)
++	CG_R_LFX_PARTICLEEFFECT = 112,
++	CG_R_VIEWPOSITION,
++
++	// engine extensions, discovered via trap_GetValue so the numbers may move
++	CG_R_ADDREFENTITYTOSCENE2 = 120,
+ 	CG_R_FORCEFIXEDDLIGHTS,
+ 	CG_R_ADDLINEARLIGHTTOSCENE,
+ 	CG_IS_RECORDING_DEMO,
+diff --git a/code/client/cl_cgame.c b/code/client/cl_cgame.c
+index 4379da01..b3a5c563 100644
+--- a/code/client/cl_cgame.c
++++ b/code/client/cl_cgame.c
+@@ -787,6 +787,18 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
+ 	case CG_R_INPVS:
+ 		return re.inPVS( VMA(1), VMA(2) );
+ 
++	// OpenArena engine extensions
++	case CG_R_LFX_PARTICLEEFFECT:
++		// renderer particle system of the OpenArena engine, not available here
++		return 0;
++
++	case CG_R_VIEWPOSITION:
++		// OpenArena projects the point to window coordinates and writes
++		// -666,-666 when it is off screen; we have no view matrices here
++		((float *)VMA(1))[0] = -666.0f;
++		((float *)VMA(1))[1] = -666.0f;
++		return 0;
++
+ 	// engine extensions
+ 	case CG_R_ADDREFENTITYTOSCENE2:
+ 		re.AddRefEntityToScene( VMA(1), qtrue );
+-- 
+2.53.0
+
