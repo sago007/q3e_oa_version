@@ -58,7 +58,8 @@ libraries must sit next to the executable.
 | 0005 | `r_fbo` defaults to 1 so `r_bloom 1` works |
 | 0006 | Binary names `openarena.x86_64`, `oa_ded.x86_64`, `openarena_<renderer>_x86_64` |
 | 0007 | OpenArena text colours: `^0`-`^8` with `^8` orange, other `^x` sequences print literally (Quake3e's extended `^9`/`^a`-`^z` colours are disabled) |
-| 0008 | OpenArena cgame syscalls 112 (`trap_R_LFX_ParticleEffect`, accepted but does nothing) and 113 (`trap_R_GetViewPosition`, always reports off screen); Quake3e's own cgame extensions move to 120+ (mods find them via `trap_GetValue`) |
+| 0008 | OpenArena cgame syscalls 112 (`trap_R_LFX_ParticleEffect`) and 113 (`trap_R_GetViewPosition`) reserved as stubs; Quake3e's own cgame extensions move to 120+ (mods find them via `trap_GetValue`) |
+| 0009 | OpenArena's renderer particle system (`tr_particles.c`, "LFX") and `GetViewPosition` ported into the OpenGL and Vulkan renderers; world collision for particles through two new refimport entries, `r_particles` selects the effect set |
 
 ### Protocol
 
@@ -79,10 +80,17 @@ semantics (Quake3e default 0.5). See Quake3e's `r_bloom_threshold`,
 ### Not ported from the OpenArena engine
 
 OpenArena's renderer extras (GLSL post-processing, lens reflections, `r_specMode`,
-`r_envMode`), its renderer particle system (`cg_leiEnhancement` effects are accepted
-but not drawn) and its console cosmetics are not part of this build. Quake3e's own
+`r_envMode`) and its console cosmetics are not part of this build. Quake3e's own
 equivalents apply. The extra `refEntity_t` fields of newer OpenArena gamecode (eye
 tracking, glow) are ignored.
+
+### Particles
+
+The OpenArena renderer particle system is included in both renderers. The gamecode
+turns it on with `cg_leiEnhancement 1`; `r_particles` picks the effect set (0 default,
+1996-1999 the retro sets, as in OpenArena). The particle shaders (`psmoke-*`, `pball-*`,
+`pshock-*`, `pblood1`, `pwater*`, `pfireball`) are mod data, currently shipped as
+`scripts/placeholder_particles.shader` in `oax_m`; without them nothing is drawn.
 
 ## Maintaining the patches
 
