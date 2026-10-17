@@ -40,8 +40,8 @@ Build args: `QUAKE3E_COMMIT`, `JOBS`, `BUILD_ARGS` (extra `build.sh` options).
 
 Output:
 
-    dist/linux-x86_64/   openarena.x86_64  oa_ded.x86_64  openarena_opengl_x86_64.so  openarena_vulkan_x86_64.so
-    dist/windows-x86_64/ openarena.x86_64.exe  oa_ded.x86_64.exe  openarena_opengl_x86_64.dll  openarena_vulkan_x86_64.dll  SDL264.dll
+    dist-docker/linux-x86_64/   openarena.x86_64  oa_ded.x86_64  openarena_opengl_x86_64.so  openarena_vulkan_x86_64.so
+    dist-docker/windows-x86_64/ openarena.x86_64.exe  oa_ded.x86_64.exe  openarena_opengl_x86_64.dll  openarena_vulkan_x86_64.dll  SDL264.dll
 
 Copy the files for your platform into an OpenArena 0.8.8 installation (next to
 `baseoa/`) and run `openarena.x86_64` / `openarena.x86_64.exe`. The renderer
